@@ -1,4 +1,4 @@
-use indexmap::IndexMap;
+use indexmap_amortized::IndexMap;
 use itertools::Itertools;
 
 use quickcheck::quickcheck;
@@ -20,7 +20,7 @@ use std::hash::Hash;
 use std::iter::FromIterator;
 use std::ops::Deref;
 
-use indexmap::map::Entry as OEntry;
+use indexmap_amortized::map::Entry as OEntry;
 use std::collections::hash_map::Entry as HEntry;
 
 fn set<'a, T: 'a, I>(iter: I) -> HashSet<T>

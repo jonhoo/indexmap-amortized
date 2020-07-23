@@ -6,13 +6,12 @@ pub use crate::rayon::set as rayon;
 #[cfg(has_std)]
 use std::collections::hash_map::RandomState;
 
-use crate::vec::{self, Vec};
+use crate::EntryVec;
 use core::cmp::Ordering;
 use core::fmt;
 use core::hash::{BuildHasher, Hash};
 use core::iter::{Chain, FromIterator};
 use core::ops::{BitAnd, BitOr, BitXor, RangeFull, Sub};
-use core::slice;
 
 use super::{Entries, Equivalent, IndexMap};
 
@@ -49,7 +48,7 @@ type Bucket<T> = super::Bucket<T, ()>;
 /// # Examples
 ///
 /// ```
-/// use indexmap::IndexSet;
+/// use indexmap_amortized::IndexSet;
 ///
 /// // Collects which letters appear in a sentence.
 /// let letters: IndexSet<_> = "a short treatise on fungi".chars().collect();
@@ -88,23 +87,23 @@ impl<T, S> Entries for IndexSet<T, S> {
     type Entry = Bucket<T>;
 
     #[inline]
-    fn into_entries(self) -> Vec<Self::Entry> {
+    fn into_entries(self) -> EntryVec<Self::Entry> {
         self.map.into_entries()
     }
 
     #[inline]
-    fn as_entries(&self) -> &[Self::Entry] {
+    fn as_entries(&self) -> &EntryVec<Self::Entry> {
         self.map.as_entries()
     }
 
     #[inline]
-    fn as_entries_mut(&mut self) -> &mut [Self::Entry] {
+    fn as_entries_mut(&mut self) -> &mut EntryVec<Self::Entry> {
         self.map.as_entries_mut()
     }
 
     fn with_entries<F>(&mut self, f: F)
     where
-        F: FnOnce(&mut [Self::Entry]),
+        F: FnOnce(&mut EntryVec<Self::Entry>),
     {
         self.map.with_entries(f);
     }
@@ -600,7 +599,7 @@ impl<T, S> IndexSet<T, S> {
 /// [`IndexSet`]: struct.IndexSet.html
 /// [`into_iter`]: struct.IndexSet.html#method.into_iter
 pub struct IntoIter<T> {
-    iter: vec::IntoIter<Bucket<T>>,
+    iter: <EntryVec<Bucket<T>> as IntoIterator>::IntoIter,
 }
 
 impl<T> Iterator for IntoIter<T> {
@@ -623,8 +622,7 @@ impl<T> ExactSizeIterator for IntoIter<T> {
 
 impl<T: fmt::Debug> fmt::Debug for IntoIter<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let iter = self.iter.as_slice().iter().map(Bucket::key_ref);
-        f.debug_list().entries(iter).finish()
+        f.debug_struct("IntoIter").finish()
     }
 }
 
@@ -636,7 +634,7 @@ impl<T: fmt::Debug> fmt::Debug for IntoIter<T> {
 /// [`IndexSet`]: struct.IndexSet.html
 /// [`iter`]: struct.IndexSet.html#method.iter
 pub struct Iter<'a, T> {
-    iter: slice::Iter<'a, Bucket<T>>,
+    iter: <&'a EntryVec<Bucket<T>> as IntoIterator>::IntoIter,
 }
 
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -679,7 +677,7 @@ impl<T: fmt::Debug> fmt::Debug for Iter<'_, T> {
 /// [`IndexSet`]: struct.IndexSet.html
 /// [`drain`]: struct.IndexSet.html#method.drain
 pub struct Drain<'a, T> {
-    iter: vec::Drain<'a, Bucket<T>>,
+    iter: atone::vc::Drain<'a, Bucket<T>>,
 }
 
 impl<T> Iterator for Drain<'_, T> {
@@ -1143,6 +1141,7 @@ mod tests {
     use super::*;
     use crate::util::enumerate;
     use std::string::String;
+    use std::vec::Vec;
 
     #[test]
     fn it_works() {
@@ -1331,7 +1330,6 @@ mod tests {
             assert_eq!(set.get(&i), Some(&i));
             set.shrink_to_fit();
             assert_eq!(set.len(), i + 1);
-            assert_eq!(set.capacity(), i + 1);
             assert_eq!(set.get(&i), Some(&i));
         }
     }

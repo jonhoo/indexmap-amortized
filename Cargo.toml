@@ -1,13 +1,14 @@
 [package]
-name = "indexmap"
+name = "indexmap-amortized"
 edition = "2018"
-version = "1.5.0"
+version = "1.0.0"
 authors = [
 "bluss",
-"Josh Stone <cuviper@gmail.com>"
+"Josh Stone <cuviper@gmail.com>",
+"Jon Gjengset <jon@tsp.io>"
 ]
-documentation = "https://docs.rs/indexmap/"
-repository = "https://github.com/bluss/indexmap"
+documentation = "https://docs.rs/indexmap-amortized/"
+repository = "https://github.com/jonhoo/indexmap-amortized"
 license = "Apache-2.0/MIT"
 description = """
 A hash table with consistent order and fast iteration.
@@ -18,8 +19,7 @@ hash table functionality, it preserves insertion order except after
 removals, and it allows lookup of its elements by either hash table key
 or numerical index. A corresponding hash set type is also provided.
 
-This crate was initially published under the name ordermap, but it was renamed to
-indexmap.
+This crate is an ongoing fork of bluss/indexmap that provides amortized resizes.
 """
 
 keywords = ["hashmap", "no_std"]
@@ -34,10 +34,11 @@ bench = false
 autocfg = "1"
 [dependencies]
 serde = { version = "1.0", optional = true, default-features = false }
-rayon = { version = "1.0", optional = true }
+rayon_ = { version = "1.0", optional = true, package = "rayon" }
+atone = { version = "0.3.1" }
 
-[dependencies.hashbrown]
-version = "0.8.1"
+[dependencies.griddle]
+version = "0.3.1"
 default-features = false
 features = ["raw"]
 
@@ -52,6 +53,7 @@ fxhash = "0.2.1"
 [features]
 # Serialization with serde 1.0
 serde-1 = ["serde"]
+rayon = ["rayon_", "atone/rayon"]
 
 # for testing only, of course
 test_low_transition_point = []

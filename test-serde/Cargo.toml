@@ -9,5 +9,5 @@ edition = "2018"
 
 [dev-dependencies]
 fnv = "1.0"
-indexmap = { path = "..", features = ["serde-1"] }
+indexmap = { path = "..", features = ["serde-1"], package = "indexmap-amortized" }
 serde_test = "1.0.99"

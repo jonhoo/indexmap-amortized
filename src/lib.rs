@@ -4,6 +4,8 @@
 #![doc(html_root_url = "https://docs.rs/indexmap/1/")]
 #![no_std]
 
+//! A variant of the `indexmap` crate that amortizes the cost of resizes.
+//!
 //! [`IndexMap`] is a hash table where the iteration order of the key-value
 //! pairs is independent of the hash values of the keys.
 //!
@@ -13,6 +15,15 @@
 //! [`IndexMap`]: map/struct.IndexMap.html
 //! [`IndexSet`]: set/struct.IndexSet.html
 //!
+//! ### Amortization
+//!
+//! This crate is an ongoing fork of [`indexmap`] that amortizes the cost of resizes.
+//! If you're unsure if you need this, take a look at the documentation of [`griddle`]
+//! and [`atone`], which provide the underlying amortization.
+//!
+//! [`indexmap`]: https://github.com/bluss/indexmap/
+//! [`griddle`]: https://github.com/jonhoo/griddle/
+//! [`atone`]: https://github.com/jonhoo/atone/
 //!
 //! ### Feature Highlights
 //!
@@ -36,7 +47,7 @@
 //! ```
 //! use fnv::FnvBuildHasher;
 //! use fxhash::FxBuildHasher;
-//! use indexmap::{IndexMap, IndexSet};
+//! use indexmap_amortized::{IndexMap, IndexSet};
 //!
 //! type FnvIndexMap<K, V> = IndexMap<K, V, FnvBuildHasher>;
 //! type FnvIndexSet<T> = IndexSet<T, FnvBuildHasher>;
@@ -86,9 +97,11 @@ extern crate alloc;
 extern crate std;
 
 #[cfg(not(has_std))]
+#[allow(unused_imports)]
 use alloc::vec::{self, Vec};
 
 #[cfg(has_std)]
+#[allow(unused_imports)]
 use std::vec::{self, Vec};
 
 #[macro_use]
@@ -112,6 +125,8 @@ pub use crate::map::IndexMap;
 pub use crate::set::IndexSet;
 
 // shared private items
+
+type EntryVec<T> = atone::Vc<T>;
 
 /// Hash value newtype. Not larger than usize, since anything larger
 /// isn't used for selecting position anyway.
@@ -182,10 +197,10 @@ impl<K, V> Bucket<K, V> {
 
 trait Entries {
     type Entry;
-    fn into_entries(self) -> Vec<Self::Entry>;
-    fn as_entries(&self) -> &[Self::Entry];
-    fn as_entries_mut(&mut self) -> &mut [Self::Entry];
+    fn into_entries(self) -> EntryVec<Self::Entry>;
+    fn as_entries(&self) -> &EntryVec<Self::Entry>;
+    fn as_entries_mut(&mut self) -> &mut EntryVec<Self::Entry>;
     fn with_entries<F>(&mut self, f: F)
     where
-        F: FnOnce(&mut [Self::Entry]);
+        F: FnOnce(&mut EntryVec<Self::Entry>);
 }

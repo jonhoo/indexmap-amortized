@@ -1,4 +1,4 @@
-use indexmap::{indexmap, indexset};
+use indexmap_amortized::{indexmap, indexset};
 
 #[test]
 fn test_sort() {

@@ -6,8 +6,8 @@
 //! Requires crate feature `"rayon"`
 
 use super::collect;
-use rayon::iter::plumbing::{Consumer, ProducerCallback, UnindexedConsumer};
-use rayon::prelude::*;
+use rayon_::iter::plumbing::{Consumer, ProducerCallback, UnindexedConsumer};
+use rayon_::prelude::*;
 
 use crate::vec::Vec;
 use core::cmp::Ordering;
@@ -16,6 +16,7 @@ use core::hash::{BuildHasher, Hash};
 
 use crate::Bucket;
 use crate::Entries;
+use crate::EntryVec;
 use crate::IndexMap;
 
 /// Requires crate feature `"rayon"`.
@@ -42,7 +43,7 @@ where
 /// [`into_par_iter`]: ../struct.IndexMap.html#method.into_par_iter
 /// [`IndexMap`]: ../struct.IndexMap.html
 pub struct IntoParIter<K, V> {
-    entries: Vec<Bucket<K, V>>,
+    entries: EntryVec<Bucket<K, V>>,
 }
 
 impl<K: fmt::Debug, V: fmt::Debug> fmt::Debug for IntoParIter<K, V> {
@@ -86,7 +87,7 @@ where
 /// [`par_iter`]: ../struct.IndexMap.html#method.par_iter
 /// [`IndexMap`]: ../struct.IndexMap.html
 pub struct ParIter<'a, K, V> {
-    entries: &'a [Bucket<K, V>],
+    entries: &'a EntryVec<Bucket<K, V>>,
 }
 
 impl<K, V> Clone for ParIter<'_, K, V> {
@@ -136,7 +137,7 @@ where
 /// [`par_iter_mut`]: ../struct.IndexMap.html#method.par_iter_mut
 /// [`IndexMap`]: ../struct.IndexMap.html
 pub struct ParIterMut<'a, K, V> {
-    entries: &'a mut [Bucket<K, V>],
+    entries: &'a mut EntryVec<Bucket<K, V>>,
 }
 
 impl<'a, K: Sync + Send, V: Send> ParallelIterator for ParIterMut<'a, K, V> {
@@ -209,7 +210,7 @@ where
 /// [`par_keys`]: ../struct.IndexMap.html#method.par_keys
 /// [`IndexMap`]: ../struct.IndexMap.html
 pub struct ParKeys<'a, K, V> {
-    entries: &'a [Bucket<K, V>],
+    entries: &'a EntryVec<Bucket<K, V>>,
 }
 
 impl<K, V> Clone for ParKeys<'_, K, V> {
@@ -243,7 +244,7 @@ impl<K: Sync, V: Sync> IndexedParallelIterator for ParKeys<'_, K, V> {
 /// [`par_values`]: ../struct.IndexMap.html#method.par_values
 /// [`IndexMap`]: ../struct.IndexMap.html
 pub struct ParValues<'a, K, V> {
-    entries: &'a [Bucket<K, V>],
+    entries: &'a EntryVec<Bucket<K, V>>,
 }
 
 impl<K, V> Clone for ParValues<'_, K, V> {
@@ -298,7 +299,9 @@ where
         K: Ord,
     {
         self.with_entries(|entries| {
-            entries.par_sort_by(|a, b| K::cmp(&a.key, &b.key));
+            entries
+                .make_contiguous()
+                .par_sort_by(|a, b| K::cmp(&a.key, &b.key));
         });
     }
 
@@ -312,7 +315,9 @@ where
         F: Fn(&K, &V, &K, &V) -> Ordering + Sync,
     {
         self.with_entries(|entries| {
-            entries.par_sort_by(move |a, b| cmp(&a.key, &a.value, &b.key, &b.value));
+            entries
+                .make_contiguous()
+                .par_sort_by(move |a, b| cmp(&a.key, &a.value, &b.key, &b.value));
         });
     }
 
@@ -323,7 +328,9 @@ where
         F: Fn(&K, &V, &K, &V) -> Ordering + Sync,
     {
         let mut entries = self.into_entries();
-        entries.par_sort_by(move |a, b| cmp(&a.key, &a.value, &b.key, &b.value));
+        entries
+            .make_contiguous()
+            .par_sort_by(move |a, b| cmp(&a.key, &a.value, &b.key, &b.value));
         IntoParIter { entries }
     }
 }
@@ -336,7 +343,7 @@ where
 /// [`par_values_mut`]: ../struct.IndexMap.html#method.par_values_mut
 /// [`IndexMap`]: ../struct.IndexMap.html
 pub struct ParValuesMut<'a, K, V> {
-    entries: &'a mut [Bucket<K, V>],
+    entries: &'a mut EntryVec<Bucket<K, V>>,
 }
 
 impl<'a, K: Send, V: Send> ParallelIterator for ParValuesMut<'a, K, V> {

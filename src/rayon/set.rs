@@ -6,8 +6,8 @@
 //! Requires crate feature `"rayon"`.
 
 use super::collect;
-use rayon::iter::plumbing::{Consumer, ProducerCallback, UnindexedConsumer};
-use rayon::prelude::*;
+use rayon_::iter::plumbing::{Consumer, ProducerCallback, UnindexedConsumer};
+use rayon_::prelude::*;
 
 use crate::vec::Vec;
 use core::cmp::Ordering;
@@ -15,6 +15,7 @@ use core::fmt;
 use core::hash::{BuildHasher, Hash};
 
 use crate::Entries;
+use crate::EntryVec;
 use crate::IndexSet;
 
 type Bucket<T> = crate::Bucket<T, ()>;
@@ -42,7 +43,7 @@ where
 /// [`IndexSet`]: ../struct.IndexSet.html
 /// [`into_par_iter`]: ../struct.IndexSet.html#method.into_par_iter
 pub struct IntoParIter<T> {
-    entries: Vec<Bucket<T>>,
+    entries: EntryVec<Bucket<T>>,
 }
 
 impl<T: fmt::Debug> fmt::Debug for IntoParIter<T> {
@@ -85,7 +86,7 @@ where
 /// [`IndexSet`]: ../struct.IndexSet.html
 /// [`par_iter`]: ../struct.IndexSet.html#method.par_iter
 pub struct ParIter<'a, T> {
-    entries: &'a [Bucket<T>],
+    entries: &'a EntryVec<Bucket<T>>,
 }
 
 impl<T> Clone for ParIter<'_, T> {
@@ -448,7 +449,9 @@ where
         T: Ord,
     {
         self.with_entries(|entries| {
-            entries.par_sort_by(|a, b| T::cmp(&a.key, &b.key));
+            entries
+                .make_contiguous()
+                .par_sort_by(|a, b| T::cmp(&a.key, &b.key));
         });
     }
 
@@ -458,7 +461,9 @@ where
         F: Fn(&T, &T) -> Ordering + Sync,
     {
         self.with_entries(|entries| {
-            entries.par_sort_by(move |a, b| cmp(&a.key, &b.key));
+            entries
+                .make_contiguous()
+                .par_sort_by(move |a, b| cmp(&a.key, &b.key));
         });
     }
 
@@ -469,7 +474,11 @@ where
         F: Fn(&T, &T) -> Ordering + Sync,
     {
         let mut entries = self.into_entries();
-        entries.par_sort_by(move |a, b| cmp(&a.key, &b.key));
+        {
+            entries
+                .make_contiguous()
+                .par_sort_by(move |a, b| cmp(&a.key, &b.key));
+        }
         IntoParIter { entries }
     }
 }

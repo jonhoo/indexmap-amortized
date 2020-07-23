@@ -5,7 +5,7 @@
 /// ## Example
 ///
 /// ```
-/// use indexmap::indexmap;
+/// use indexmap_amortized::indexmap;
 ///
 /// let map = indexmap!{
 ///     "a" => 1,
@@ -42,7 +42,7 @@ macro_rules! indexmap {
 /// ## Example
 ///
 /// ```
-/// use indexmap::indexset;
+/// use indexmap_amortized::indexset;
 ///
 /// let set = indexset!{
 ///     "a",
