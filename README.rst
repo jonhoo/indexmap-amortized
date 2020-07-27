@@ -6,8 +6,8 @@ indexmap
 .. |crates| image:: https://img.shields.io/crates/v/indexmap-amortized.svg
 .. _crates: https://crates.io/crates/indexmap-amortized
 
-.. |build_status| image:: https://travis-ci.org/jonhoo/indexmap-amortized.svg
-.. _build_status: https://travis-ci.org/jonhoo/indexmap-amortized
+.. |build_status| image:: https://travis-ci.com/jonhoo/indexmap-amortized.svg?branch=master
+.. _build_status: https://travis-ci.com/github/jonhoo/indexmap-amortized
 
 .. |docs| image:: https://docs.rs/indexmap-amortized/badge.svg
 .. _docs: https://docs.rs/indexmap-amortized
