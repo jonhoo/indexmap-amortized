@@ -4,7 +4,7 @@ extern crate test;
 
 use test::Bencher;
 
-use indexmap::IndexMap;
+use indexmap_amortized::IndexMap;
 
 use std::collections::HashMap;
 use std::iter::FromIterator;

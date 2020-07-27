@@ -12,7 +12,7 @@ type FnvBuilder = BuildHasherDefault<FnvHasher>;
 use test::black_box;
 use test::Bencher;
 
-use indexmap::IndexMap;
+use indexmap_amortized::IndexMap;
 
 use std::collections::HashMap;
 use std::iter::FromIterator;
