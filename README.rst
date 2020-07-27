@@ -71,6 +71,11 @@ which is roughly:
 Recent Changes
 ==============
 
+- 1.0.1
+
+  - Note that crate is nightly-only.
+  - Make benchmarks compile again.
+
 - 1.0.0
 
   - Initial release.
