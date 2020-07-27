@@ -12,8 +12,8 @@ indexmap
 .. |docs| image:: https://docs.rs/indexmap-amortized/badge.svg
 .. _docs: https://docs.rs/indexmap-amortized
 
-.. |rustc| image:: https://img.shields.io/badge/rust-1.32%2B-orange.svg
-.. _rustc: https://img.shields.io/badge/rust-1.32%2B-orange.svg
+.. |rustc| image:: https://img.shields.io/badge/rust-nightly-orange.svg
+.. _rustc: https://img.shields.io/badge/rust-nightly-orange.svg
 
 A pure-Rust hash table which preserves (in a limited sense) insertion order.
 

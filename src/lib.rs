@@ -64,16 +64,14 @@
 //!
 //! ### Rust Version
 //!
-//! This version of indexmap requires Rust 1.32 or later, or Rust 1.36+ for
-//! using with `alloc` (without `std`), see below.
-//!
-//! The indexmap 1.x release series will use a carefully considered version
-//! upgrade policy, where in a later 1.x version, we will raise the minimum
-//! required Rust version.
+//! This version of indexmap requires a recent Rust nightly build for the time being.
+//! It will land on stable once
+//! [`deque_make_contiguous`](https://github.com/rust-lang/rust/issues/70929) and
+//! [`deque_range`](https://github.com/rust-lang/rust/issues/74217) are stabilized.
 //!
 //! ## No Standard Library Targets
 //!
-//! From Rust 1.36, this crate supports being built without `std`, requiring
+//! This crate supports being built without `std`, requiring
 //! `alloc` instead. This is enabled automatically when it is detected that
 //! `std` is not available. There is no crate feature to enable/disable to
 //! trigger this. It can be tested by building for a std-less target.
