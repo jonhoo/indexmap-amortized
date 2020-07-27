@@ -1,5 +1,5 @@
-indexmap
-========
+indexmap-amortized
+==================
 
 |build_status|_ |crates|_ |docs|_ |rustc|_
 
