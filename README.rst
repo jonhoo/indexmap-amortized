@@ -12,8 +12,8 @@ indexmap-amortized
 .. |docs| image:: https://docs.rs/indexmap-amortized/badge.svg
 .. _docs: https://docs.rs/indexmap-amortized
 
-.. |rustc| image:: https://img.shields.io/badge/rust-nightly-orange.svg
-.. _rustc: https://img.shields.io/badge/rust-nightly-orange.svg
+.. |rustc| image:: https://img.shields.io/badge/rust-1.48%2B-orange.svg
+.. _rustc: https://img.shields.io/badge/rust-1.48%2B-orange.svg
 
 A pure-Rust hash table which preserves (in a limited sense) insertion order.
 
@@ -70,6 +70,10 @@ which is roughly:
 
 Recent Changes
 ==============
+
+- 1.0.2
+
+  - Crate is no longer nightly-only!
 
 - 1.0.1
 

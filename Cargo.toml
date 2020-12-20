@@ -35,7 +35,7 @@ autocfg = "1"
 [dependencies]
 serde = { version = "1.0", optional = true, default-features = false }
 rayon_ = { version = "1.0", optional = true, package = "rayon" }
-atone = { version = "0.3.1" }
+atone = { version = "0.3.2" }
 
 [dependencies.griddle]
 version = "0.3.1"

@@ -64,10 +64,7 @@
 //!
 //! ### Rust Version
 //!
-//! This version of indexmap requires a recent Rust nightly build for the time being.
-//! It will land on stable once
-//! [`deque_make_contiguous`](https://github.com/rust-lang/rust/issues/70929) and
-//! [`deque_range`](https://github.com/rust-lang/rust/issues/74217) are stabilized.
+//! This version of indexmap requires Rust 1.48+.
 //!
 //! ## No Standard Library Targets
 //!
