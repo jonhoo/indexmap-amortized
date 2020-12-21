@@ -1,9 +1,10 @@
-use indexmap_amortized::IndexMap;
+use indexmap_amortized::{IndexMap, IndexSet};
 use itertools::Itertools;
 
 use quickcheck::quickcheck;
 use quickcheck::Arbitrary;
 use quickcheck::Gen;
+use quickcheck::TestResult;
 
 use rand::Rng;
 
@@ -18,6 +19,7 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::FromIterator;
+use std::ops::Bound;
 use std::ops::Deref;
 
 use indexmap_amortized::map::Entry as OEntry;
@@ -100,7 +102,7 @@ quickcheck! {
         map.capacity() >= cap
     }
 
-    fn drain(insert: Vec<u8>) -> bool {
+    fn drain_full(insert: Vec<u8>) -> bool {
         let mut map = IndexMap::new();
         for &key in &insert {
             map.insert(key, ());
@@ -111,6 +113,32 @@ quickcheck! {
             map.swap_remove(&key);
         }
         map.is_empty()
+    }
+
+    fn drain_bounds(insert: Vec<u8>, range: (Bound<usize>, Bound<usize>)) -> TestResult {
+        let mut map = IndexMap::new();
+        for &key in &insert {
+            map.insert(key, ());
+        }
+
+        // First see if `Vec::drain` is happy with this range.
+        let result = std::panic::catch_unwind(|| {
+            let mut keys: Vec<u8> = map.keys().cloned().collect();
+            keys.drain(range);
+            keys
+        });
+
+        if let Ok(keys) = result {
+            map.drain(range);
+            // Check that our `drain` matches the same key order.
+            assert!(map.keys().eq(&keys));
+            // Check that hash lookups all work too.
+            assert!(keys.iter().all(|key| map.contains_key(key)));
+            TestResult::passed()
+        } else {
+            // If `Vec::drain` panicked, so should we.
+            TestResult::must_fail(move || { map.drain(range); })
+        }
     }
 
     fn shift_remove(insert: Vec<u8>, remove: Vec<u8>) -> bool {
@@ -135,6 +163,26 @@ quickcheck! {
             elements.iter().all(|k| map.get(k).is_some())
     }
 
+    fn indexing(insert: Vec<u8>) -> bool {
+        let mut map: IndexMap<_, _> = insert.into_iter().map(|x| (x, x)).collect();
+        let set: IndexSet<_> = map.keys().cloned().collect();
+        assert_eq!(map.len(), set.len());
+
+        for (i, &key) in set.iter().enumerate() {
+            assert_eq!(map.get_index(i), Some((&key, &key)));
+            assert_eq!(set.get_index(i), Some(&key));
+            assert_eq!(map[i], key);
+            assert_eq!(set[i], key);
+
+            *map.get_index_mut(i).unwrap().1 >>= 1;
+            map[i] <<= 1;
+        }
+
+        set.iter().enumerate().all(|(i, &key)| {
+            let value = key & !1;
+            map[&key] == value && map[i] == value
+        })
+    }
 }
 
 use crate::Op::*;

@@ -11,7 +11,7 @@ use core::cmp::Ordering;
 use core::fmt;
 use core::hash::{BuildHasher, Hash};
 use core::iter::{Chain, FromIterator};
-use core::ops::{BitAnd, BitOr, BitXor, RangeFull, Sub};
+use core::ops::{BitAnd, BitOr, BitXor, Index, RangeBounds, Sub};
 
 use super::{Entries, Equivalent, IndexMap};
 
@@ -199,11 +199,48 @@ impl<T, S> IndexSet<T, S> {
         self.map.clear();
     }
 
-    /// Clears the `IndexSet`, returning all values as a drain iterator.
-    /// Keeps the allocated memory for reuse.
-    pub fn drain(&mut self, range: RangeFull) -> Drain<'_, T> {
+    /// Shortens the set, keeping the first `len` elements and dropping the rest.
+    ///
+    /// If `len` is greater than the set's current length, this has no effect.
+    pub fn truncate(&mut self, len: usize) {
+        self.map.truncate(len);
+    }
+
+    /// Clears the `IndexSet` in the given index range, returning those values
+    /// as a drain iterator.
+    ///
+    /// The range may be any type that implements `RangeBounds<usize>`,
+    /// including all of the `std::ops::Range*` types, or even a tuple pair of
+    /// `Bound` start and end values. To drain the set entirely, use `RangeFull`
+    /// like `set.drain(..)`.
+    ///
+    /// This shifts down all entries following the drained range to fill the
+    /// gap, and keeps the allocated memory for reuse.
+    ///
+    /// ***Panics*** if the starting point is greater than the end point or if
+    /// the end point is greater than the length of the set.
+    pub fn drain<R>(&mut self, range: R) -> Drain<'_, T>
+    where
+        R: RangeBounds<usize>,
+    {
         Drain {
             iter: self.map.drain(range).iter,
+        }
+    }
+
+    /// Splits the collection into two at the given index.
+    ///
+    /// Returns a newly allocated set containing the elements in the range
+    /// `[at, len)`. After the call, the original set will be left containing
+    /// the elements `[0, at)` with its previous capacity unchanged.
+    ///
+    /// ***Panics*** if `at > len`.
+    pub fn split_off(&mut self, at: usize) -> Self
+    where
+        S: Clone,
+    {
+        Self {
+            map: self.map.split_off(at),
         }
     }
 }
@@ -561,10 +598,24 @@ impl<T, S> IndexSet<T, S> {
     ///
     /// Computes in **O(1)** time.
     pub fn get_index(&self, index: usize) -> Option<&T> {
-        self.map.get_index(index).map(|(x, &())| x)
+        self.as_entries().get(index).map(Bucket::key_ref)
     }
 
-    /// Remove the key-value pair by index
+    /// Get the first value
+    ///
+    /// Computes in **O(1)** time.
+    pub fn first(&self) -> Option<&T> {
+        self.as_entries().first().map(Bucket::key_ref)
+    }
+
+    /// Get the last value
+    ///
+    /// Computes in **O(1)** time.
+    pub fn last(&self) -> Option<&T> {
+        self.as_entries().last().map(Bucket::key_ref)
+    }
+
+    /// Remove the value by index
     ///
     /// Valid indices are *0 <= index < self.len()*
     ///
@@ -577,7 +628,7 @@ impl<T, S> IndexSet<T, S> {
         self.map.swap_remove_index(index).map(|(x, ())| x)
     }
 
-    /// Remove the key-value pair by index
+    /// Remove the value by index
     ///
     /// Valid indices are *0 <= index < self.len()*
     ///
@@ -588,6 +639,53 @@ impl<T, S> IndexSet<T, S> {
     /// Computes in **O(n)** time (average).
     pub fn shift_remove_index(&mut self, index: usize) -> Option<T> {
         self.map.shift_remove_index(index).map(|(x, ())| x)
+    }
+
+    /// Swaps the position of two values in the set.
+    ///
+    /// ***Panics*** if `a` or `b` are out of bounds.
+    pub fn swap_indices(&mut self, a: usize, b: usize) {
+        self.map.swap_indices(a, b)
+    }
+}
+
+/// Access `IndexSet` values at indexed positions.
+///
+/// # Examples
+///
+/// ```
+/// use indexmap_amortized::IndexSet;
+///
+/// let mut set = IndexSet::new();
+/// for word in "Lorem ipsum dolor sit amet".split_whitespace() {
+///     set.insert(word.to_string());
+/// }
+/// assert_eq!(set[0], "Lorem");
+/// assert_eq!(set[1], "ipsum");
+/// set.reverse();
+/// assert_eq!(set[0], "amet");
+/// assert_eq!(set[1], "sit");
+/// set.sort();
+/// assert_eq!(set[0], "Lorem");
+/// assert_eq!(set[1], "amet");
+/// ```
+///
+/// ```should_panic
+/// use indexmap_amortized::IndexSet;
+///
+/// let mut set = IndexSet::new();
+/// set.insert("foo");
+/// println!("{:?}", set[10]); // panics!
+/// ```
+impl<T, S> Index<usize> for IndexSet<T, S> {
+    type Output = T;
+
+    /// Returns a reference to the value at the supplied `index`.
+    ///
+    /// ***Panics*** if `index` is out of bounds.
+    fn index(&self, index: usize) -> &T {
+        self.get_index(index)
+            .expect("IndexSet: index out of bounds")
     }
 }
 

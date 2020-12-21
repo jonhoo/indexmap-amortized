@@ -13,7 +13,7 @@ use ::core::cmp::Ordering;
 use ::core::fmt;
 use ::core::hash::{BuildHasher, Hash, Hasher};
 use ::core::iter::FromIterator;
-use ::core::ops::{Index, IndexMut, RangeFull};
+use ::core::ops::{Index, IndexMut, RangeBounds};
 
 #[cfg(has_std)]
 use std::collections::hash_map::RandomState;
@@ -251,11 +251,49 @@ impl<K, V, S> IndexMap<K, V, S> {
         self.core.clear();
     }
 
-    /// Clears the `IndexMap`, returning all key-value pairs as a drain iterator.
-    /// Keeps the allocated memory for reuse.
-    pub fn drain(&mut self, range: RangeFull) -> Drain<'_, K, V> {
+    /// Shortens the map, keeping the first `len` elements and dropping the rest.
+    ///
+    /// If `len` is greater than the map's current length, this has no effect.
+    pub fn truncate(&mut self, len: usize) {
+        self.core.truncate(len);
+    }
+
+    /// Clears the `IndexMap` in the given index range, returning those
+    /// key-value pairs as a drain iterator.
+    ///
+    /// The range may be any type that implements `RangeBounds<usize>`,
+    /// including all of the `std::ops::Range*` types, or even a tuple pair of
+    /// `Bound` start and end values. To drain the map entirely, use `RangeFull`
+    /// like `map.drain(..)`.
+    ///
+    /// This shifts down all entries following the drained range to fill the
+    /// gap, and keeps the allocated memory for reuse.
+    ///
+    /// ***Panics*** if the starting point is greater than the end point or if
+    /// the end point is greater than the length of the map.
+    pub fn drain<R>(&mut self, range: R) -> Drain<'_, K, V>
+    where
+        R: RangeBounds<usize>,
+    {
         Drain {
             iter: self.core.drain(range),
+        }
+    }
+
+    /// Splits the collection into two at the given index.
+    ///
+    /// Returns a newly allocated map containing the elements in the range
+    /// `[at, len)`. After the call, the original map will be left containing
+    /// the elements `[0, at)` with its previous capacity unchanged.
+    ///
+    /// ***Panics*** if `at > len`.
+    pub fn split_off(&mut self, at: usize) -> Self
+    where
+        S: Clone,
+    {
+        Self {
+            core: self.core.split_off(at),
+            hash_builder: self.hash_builder.clone(),
         }
     }
 }
@@ -470,7 +508,7 @@ where
     ///
     /// Like `Vec::swap_remove`, the pair is removed by swapping it with the
     /// last element of the map and popping it off. **This perturbs
-    /// the postion of what used to be the last element!**
+    /// the position of what used to be the last element!**
     ///
     /// Return `None` if `key` is not in map.
     ///
@@ -486,7 +524,7 @@ where
     ///
     /// Like `Vec::swap_remove`, the pair is removed by swapping it with the
     /// last element of the map and popping it off. **This perturbs
-    /// the postion of what used to be the last element!**
+    /// the position of what used to be the last element!**
     ///
     /// Return `None` if `key` is not in map.
     ///
@@ -506,7 +544,7 @@ where
     ///
     /// Like `Vec::swap_remove`, the pair is removed by swapping it with the
     /// last element of the map and popping it off. **This perturbs
-    /// the postion of what used to be the last element!**
+    /// the position of what used to be the last element!**
     ///
     /// Return `None` if `key` is not in map.
     ///
@@ -684,13 +722,41 @@ impl<K, V, S> IndexMap<K, V, S> {
         self.as_entries_mut().get_mut(index).map(Bucket::muts)
     }
 
+    /// Get the first key-value pair
+    ///
+    /// Computes in **O(1)** time.
+    pub fn first(&self) -> Option<(&K, &V)> {
+        self.as_entries().first().map(Bucket::refs)
+    }
+
+    /// Get the first key-value pair, with mutable access to the value
+    ///
+    /// Computes in **O(1)** time.
+    pub fn first_mut(&mut self) -> Option<(&K, &mut V)> {
+        self.as_entries_mut().first_mut().map(Bucket::ref_mut)
+    }
+
+    /// Get the last key-value pair
+    ///
+    /// Computes in **O(1)** time.
+    pub fn last(&self) -> Option<(&K, &V)> {
+        self.as_entries().last().map(Bucket::refs)
+    }
+
+    /// Get the last key-value pair, with mutable access to the value
+    ///
+    /// Computes in **O(1)** time.
+    pub fn last_mut(&mut self) -> Option<(&K, &mut V)> {
+        self.as_entries_mut().last_mut().map(Bucket::ref_mut)
+    }
+
     /// Remove the key-value pair by index
     ///
     /// Valid indices are *0 <= index < self.len()*
     ///
     /// Like `Vec::swap_remove`, the pair is removed by swapping it with the
     /// last element of the map and popping it off. **This perturbs
-    /// the postion of what used to be the last element!**
+    /// the position of what used to be the last element!**
     ///
     /// Computes in **O(1)** time (average).
     pub fn swap_remove_index(&mut self, index: usize) -> Option<(K, V)> {
@@ -708,6 +774,13 @@ impl<K, V, S> IndexMap<K, V, S> {
     /// Computes in **O(n)** time (average).
     pub fn shift_remove_index(&mut self, index: usize) -> Option<(K, V)> {
         self.core.shift_remove_index(index)
+    }
+
+    /// Swaps the position of two key-value pairs in the map.
+    ///
+    /// ***Panics*** if `a` or `b` are out of bounds.
+    pub fn swap_indices(&mut self, a: usize, b: usize) {
+        self.core.swap_indices(a, b)
     }
 }
 
@@ -983,6 +1056,28 @@ impl<K, V, S> IntoIterator for IndexMap<K, V, S> {
     }
 }
 
+/// Access `IndexMap` values corresponding to a key.
+///
+/// # Examples
+///
+/// ```
+/// use indexmap_amortized::IndexMap;
+///
+/// let mut map = IndexMap::new();
+/// for word in "Lorem ipsum dolor sit amet".split_whitespace() {
+///     map.insert(word.to_lowercase(), word.to_uppercase());
+/// }
+/// assert_eq!(map["lorem"], "LOREM");
+/// assert_eq!(map["ipsum"], "IPSUM");
+/// ```
+///
+/// ```should_panic
+/// use indexmap_amortized::IndexMap;
+///
+/// let mut map = IndexMap::new();
+/// map.insert("foo", 1);
+/// println!("{:?}", map["bar"]); // panics!
+/// ```
 impl<K, V, Q: ?Sized, S> Index<&Q> for IndexMap<K, V, S>
 where
     Q: Hash + Equivalent<K>,
@@ -991,25 +1086,135 @@ where
 {
     type Output = V;
 
+    /// Returns a reference to the value corresponding to the supplied `key`.
+    ///
     /// ***Panics*** if `key` is not present in the map.
     fn index(&self, key: &Q) -> &V {
         self.get(key).expect("IndexMap: key not found")
     }
 }
 
+/// Access `IndexMap` values corresponding to a key.
+///
 /// Mutable indexing allows changing / updating values of key-value
 /// pairs that are already present.
 ///
 /// You can **not** insert new pairs with index syntax, use `.insert()`.
+///
+/// # Examples
+///
+/// ```
+/// use indexmap_amortized::IndexMap;
+///
+/// let mut map = IndexMap::new();
+/// for word in "Lorem ipsum dolor sit amet".split_whitespace() {
+///     map.insert(word.to_lowercase(), word.to_string());
+/// }
+/// let lorem = &mut map["lorem"];
+/// assert_eq!(lorem, "Lorem");
+/// lorem.retain(char::is_lowercase);
+/// assert_eq!(map["lorem"], "orem");
+/// ```
+///
+/// ```should_panic
+/// use indexmap_amortized::IndexMap;
+///
+/// let mut map = IndexMap::new();
+/// map.insert("foo", 1);
+/// map["bar"] = 1; // panics!
+/// ```
 impl<K, V, Q: ?Sized, S> IndexMut<&Q> for IndexMap<K, V, S>
 where
     Q: Hash + Equivalent<K>,
     K: Hash + Eq,
     S: BuildHasher,
 {
+    /// Returns a mutable reference to the value corresponding to the supplied `key`.
+    ///
     /// ***Panics*** if `key` is not present in the map.
     fn index_mut(&mut self, key: &Q) -> &mut V {
         self.get_mut(key).expect("IndexMap: key not found")
+    }
+}
+
+/// Access `IndexMap` values at indexed positions.
+///
+/// # Examples
+///
+/// ```
+/// use indexmap_amortized::IndexMap;
+///
+/// let mut map = IndexMap::new();
+/// for word in "Lorem ipsum dolor sit amet".split_whitespace() {
+///     map.insert(word.to_lowercase(), word.to_uppercase());
+/// }
+/// assert_eq!(map[0], "LOREM");
+/// assert_eq!(map[1], "IPSUM");
+/// map.reverse();
+/// assert_eq!(map[0], "AMET");
+/// assert_eq!(map[1], "SIT");
+/// map.sort_keys();
+/// assert_eq!(map[0], "AMET");
+/// assert_eq!(map[1], "DOLOR");
+/// ```
+///
+/// ```should_panic
+/// use indexmap_amortized::IndexMap;
+///
+/// let mut map = IndexMap::new();
+/// map.insert("foo", 1);
+/// println!("{:?}", map[10]); // panics!
+/// ```
+impl<K, V, S> Index<usize> for IndexMap<K, V, S> {
+    type Output = V;
+
+    /// Returns a reference to the value at the supplied `index`.
+    ///
+    /// ***Panics*** if `index` is out of bounds.
+    fn index(&self, index: usize) -> &V {
+        self.get_index(index)
+            .expect("IndexMap: index out of bounds")
+            .1
+    }
+}
+
+/// Access `IndexMap` values at indexed positions.
+///
+/// Mutable indexing allows changing / updating indexed values
+/// that are already present.
+///
+/// You can **not** insert new values with index syntax, use `.insert()`.
+///
+/// # Examples
+///
+/// ```
+/// use indexmap_amortized::IndexMap;
+///
+/// let mut map = IndexMap::new();
+/// for word in "Lorem ipsum dolor sit amet".split_whitespace() {
+///     map.insert(word.to_lowercase(), word.to_string());
+/// }
+/// let lorem = &mut map[0];
+/// assert_eq!(lorem, "Lorem");
+/// lorem.retain(char::is_lowercase);
+/// assert_eq!(map["lorem"], "orem");
+/// ```
+///
+/// ```should_panic
+/// use indexmap_amortized::IndexMap;
+///
+/// let mut map = IndexMap::new();
+/// map.insert("foo", 1);
+/// map[10] = 1; // panics!
+/// ```
+impl<K, V, S> IndexMut<usize> for IndexMap<K, V, S> {
+    /// Returns a mutable reference to the value at the supplied `index`.
+    ///
+    /// ***Panics*** if `index` is out of bounds.
+    fn index_mut(&mut self, index: usize) -> &mut V {
+        self.get_index_mut(index)
+            .expect("IndexMap: index out of bounds")
+            .1
     }
 }
 

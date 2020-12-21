@@ -3,11 +3,11 @@ indexmap-amortized
 
 |build_status|_ |crates|_ |docs|_ |rustc|_
 
+.. |build_status| image:: https://github.com/jonhoo/indexmap-amortized/workflows/Continuous%20integration/badge.svg?branch=master
+.. _build_status: https://github.com/jonhoo/indexmap-amortized/actions
+
 .. |crates| image:: https://img.shields.io/crates/v/indexmap-amortized.svg
 .. _crates: https://crates.io/crates/indexmap-amortized
-
-.. |build_status| image:: https://travis-ci.com/jonhoo/indexmap-amortized.svg?branch=master
-.. _build_status: https://travis-ci.com/github/jonhoo/indexmap-amortized
 
 .. |docs| image:: https://docs.rs/indexmap-amortized/badge.svg
 .. _docs: https://docs.rs/indexmap-amortized
@@ -71,9 +71,10 @@ which is roughly:
 Recent Changes
 ==============
 
-- 1.0.2
+- 1.6.1
 
   - Crate is no longer nightly-only!
+  - Synchronize with upstream version 1.6.1
 
 - 1.0.1
 

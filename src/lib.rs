@@ -64,7 +64,12 @@
 //!
 //! ### Rust Version
 //!
+//! This version of indexmap requires Rust 1.48 or later.
 //! This version of indexmap requires Rust 1.48+.
+//!
+//! The indexmap 1.x release series will use a carefully considered version
+//! upgrade policy, where in a later 1.x version, we will raise the minimum
+//! required Rust version.
 //!
 //! ## No Standard Library Targets
 //!
@@ -103,8 +108,10 @@ use std::vec::{self, Vec};
 mod macros;
 mod equivalent;
 mod mutable_keys;
-#[cfg(feature = "serde-1")]
+#[cfg(feature = "serde")]
 mod serde;
+#[cfg(feature = "serde")]
+pub mod serde_seq;
 mod util;
 
 pub mod map;
